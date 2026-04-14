@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Onchain Verification</title>
+<style>
+  body { font-family: Arial; text-align: center; padding: 40px; }
+  input, button { padding: 10px; margin: 10px; width: 300px; }
+  .result { margin-top: 20px; font-size: 16px; }
+</style>
+</head>
+<body>
+
+<h2>💍 Protocol Studio - Verify</h2>
+
+<input type="text" id="txid" placeholder="Enter TXID">
+<br>
+<button onclick="checkTX()">Verify</button>
+
+<div class="result" id="output"></div>
+
+<script>
+async function checkTX() {
+  const txid = document.getElementById("txid").value;
+
+  try {
+    // 🔥 mempool API
+    const res = await fetch(`https://mempool.space/api/tx/${txid}`);
+    const data = await res.json();
+
+    let opreturnData = null;
+
+    // outputs 돌면서 OP_RETURN 찾기
+    data.vout.forEach(out => {
+      if (out.scriptpubkey_type === "op_return") {
+        opreturnData = out.scriptpubkey_asm;
+      }
+    });
+
+    if (!opreturnData) {
+      document.getElementById("output").innerHTML = "❌ OP_RETURN not found";
+      return;
+    }
+
+    // OP_RETURN HEX 추출
+    const hex = opreturnData.split(" ")[1];
+
+    // HEX → TEXT 변환
+    const text = hexToAscii(hex);
+
+    // 파싱
+    const parts = text.split("|");
+
+    document.getElementById("output").innerHTML = `
+      ✔ AUTHENTIC<br><br>
+      Serial: ${parts[0]}<br>
+      Date: ${parts[1]}<br>
+      Model: ${parts[2]}<br>
+      Material: ${parts[3]}<br><br>
+      <a href="https://mempool.space/tx/${txid}" target="_blank">View Transaction</a>
+    `;
+
+  } catch (e) {
+    document.getElementById("output").innerHTML = "❌ Invalid TXID";
+  }
+}
+
+// HEX → ASCII 변환 함수
+function hexToAscii(hex) {
+  let str = '';
+  for (let i = 0; i < hex.length; i += 2) {
+    str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+  }
+  return str;
+}
+</script>
+
+</body>
+</html>
