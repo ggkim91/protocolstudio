@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Protocol Studio — Verify</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #181818;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0ece4;
+    --muted: #5a5851;
+    --accent: #c8b89a;
+    --accent2: #8a7a64;
+    --gold: #d4a853;
+    --verified: #4a9e6a;
+    --error: #9e4a4a;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.6;
+  }
+
+  /* layout */
+  .page { max-width: 680px; margin: 0 auto; padding: 0 24px; }
+
+  /* header */
+  header {
+    padding: 48px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards;
+  }
+
+  .logo {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  .logo span { color: var(--muted); }
+
+  .nav-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    border: 1px solid var(--border2);
+    padding: 5px 10px;
+    border-radius: 2px;
+  }
+
+  /* hero */
+  .hero {
+    padding: 80px 0 60px;
+    opacity: 0;
+    animation: fadeUp 0.8s ease 0.15s forwards;
+  }
+
+  .hero-eyebrow {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .hero-eyebrow::before {
+    content: '';
+    display: block;
+    width: 24px;
+    height: 1px;
+    background: var(--muted);
+  }
+
+  .hero h1 {
+    font-size: clamp(36px, 6vw, 56px);
+    font-weight: 800;
+    line-height: 1.0;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  .hero h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .hero-sub {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.7;
+    max-width: 440px;
+    font-family: var(--mono);
+  }
+
+  /* search box */
+  .search-section {
+    opacity: 0;
+    animation: fadeUp 0.8s ease 0.3s forwards;
+    margin-bottom: 16px;
+  }
+
+  .input-wrap {
+    position: relative;
+    margin-bottom: 12px;
+  }
+
+  .input-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .search-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 16px 20px;
+    outline: none;
+    border-radius: 2px;
+    transition: border-color 0.2s;
+    letter-spacing: 0.05em;
+  }
+
+  .search-input::placeholder { color: var(--muted); }
+  .search-input:focus { border-color: var(--accent2); }
+
+  .btn-row { display: flex; gap: 10px; }
+
+  .btn-verify {
+    flex: 1;
+    background: var(--accent);
+    color: #0a0a0a;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 14px 24px;
+    border: none;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.15s, transform 0.1s;
+  }
+
+  .btn-verify:hover { background: var(--text); }
+  .btn-verify:active { transform: scale(0.99); }
+
+  .btn-clear {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    padding: 14px 20px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .btn-clear:hover { border-color: var(--accent2); color: var(--accent); }
+
+  /* tabs */
+  .tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 10px 0;
+    margin-right: 28px;
+    cursor: pointer;
+    border-bottom: 1px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover { color: var(--text); }
+
+  /* result panel */
+  .result {
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards;
+    margin-top: 32px;
+  }
+
+  .result-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--verified);
+    flex-shrink: 0;
+    box-shadow: 0 0 12px var(--verified);
+  }
+
+  .status-dot.error { background: var(--error); box-shadow: 0 0 12px var(--error); }
+  .status-dot.pending { background: var(--gold); box-shadow: 0 0 12px var(--gold); }
+
+  .status-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--verified);
+  }
+  .status-label.error { color: var(--error); }
+  .status-label.pending { color: var(--gold); }
+
+  /* certificate card */
+  .cert {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .cert-top {
+    padding: 28px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .cert-serial {
+    font-family: var(--mono);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+
+  .cert-line {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  .cert-stamp {
+    width: 56px;
+    height: 56px;
+    border: 1px solid var(--border2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .cert-stamp svg { width: 28px; height: 28px; }
+
+  .cert-fields {
+    padding: 0;
+  }
+
+  .cert-field {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 14px 32px;
+    border-bottom: 1px solid var(--border);
+    gap: 20px;
+  }
+
+  .cert-field:last-child { border-bottom: none; }
+
+  .field-key {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    flex-shrink: 0;
+    min-width: 120px;
+  }
+
+  .field-val {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    text-align: right;
+    word-break: break-all;
+    line-height: 1.6;
+  }
+
+  .field-val.gold { color: var(--gold); }
+  .field-val.accent { color: var(--accent); }
+
+  .cert-footer {
+    background: var(--surface2);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .footer-note {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    line-height: 1.6;
+  }
+
+  .mempool-link {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    text-decoration: none;
+    border: 1px solid var(--border2);
+    padding: 7px 14px;
+    border-radius: 2px;
+    white-space: nowrap;
+    transition: border-color 0.2s, background 0.2s;
+    flex-shrink: 0;
+  }
+
+  .mempool-link:hover { background: var(--surface2); border-color: var(--accent2); }
+
+  /* error state */
+  .error-box {
+    background: var(--surface);
+    border: 1px solid rgba(158, 74, 74, 0.3);
+    border-radius: 2px;
+    padding: 32px;
+    text-align: center;
+  }
+
+  .error-title {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--error);
+    margin-bottom: 8px;
+  }
+
+  .error-sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  /* demo data notice */
+  .demo-notice {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    padding: 12px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 12px;
+    line-height: 1.7;
+  }
+
+  .demo-notice span { color: var(--accent2); }
+
+  /* genesis block info */
+  .genesis-strip {
+    margin-top: 48px;
+    padding: 28px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    opacity: 0;
+    animation: fadeUp 0.8s ease 0.45s forwards;
+  }
+
+  .genesis-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .genesis-hash {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--surface2);
+    letter-spacing: 0.05em;
+    line-height: 1.8;
+    word-break: break-all;
+    position: relative;
+  }
+
+  .genesis-hash .hi { color: var(--accent); }
+
+  /* footer */
+  footer {
+    padding: 48px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    opacity: 0;
+    animation: fadeUp 0.8s ease 0.6s forwards;
+  }
+
+  .footer-logo {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .footer-copy {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  /* loading */
+  .loading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 32px 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .loading-dots span {
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent2);
+    margin: 0 2px;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes pulse { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  #result-area { min-height: 20px; }
+
+  .hidden { display: none; }
+
+  /* demo examples */
+  .examples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .example-pill {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 5px 12px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+    background: none;
+  }
+
+  .example-pill:hover { border-color: var(--accent2); color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="logo">Protocol <span>//</span> Studio</div>
+    <div class="nav-tag">Verify</div>
+  </header>
+
+  <div class="hero">
+    <div class="hero-eyebrow">On-chain authentication</div>
+    <h1>Your ring.<br><em>On the chain.</em></h1>
+    <p class="hero-sub">Enter your TXID or serial number to verify your piece is permanently recorded on the Bitcoin blockchain.</p>
+  </div>
+
+  <div class="search-section">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('txid')">TXID</button>
+      <button class="tab" onclick="switchTab('serial')">Serial No.</button>
+    </div>
+
+    <div id="tab-txid">
+      <div class="input-label">Transaction ID</div>
+      <div class="input-wrap">
+        <input class="search-input" id="txid-input"
+          placeholder="e.g. 4a5e1e4baeccd9d0b88b7e06d5c1e8..."
+          maxlength="64"
+          autocomplete="off"
+          spellcheck="false">
+      </div>
+    </div>
+
+    <div id="tab-serial" class="hidden">
+      <div class="input-label">Serial Number</div>
+      <div class="input-wrap">
+        <input class="search-input" id="serial-input"
+          placeholder="e.g. PS-0001"
+          maxlength="10"
+          autocomplete="off"
+          spellcheck="false"
+          oninput="this.value = this.value.toUpperCase()">
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-verify" onclick="verify()">Verify on chain</button>
+      <button class="btn-clear" onclick="clearResult()">Clear</button>
+    </div>
+
+
+  </div>
+
+  <div id="result-area"></div>
+
+  <div class="genesis-strip">
+    <div class="genesis-label">Genesis Block — Block #0 — 2009/01/03</div>
+    <div class="genesis-hash">
+      <span class="hi">4a5e1e4b</span>aeccd9d0b88b7e06d5c1e8b62c2b2b0f4a1a5c0e9d8f4b3c7a6d2e1f0a3b5c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-logo">Protocol Studio — Genesis Line</div>
+    <div class="footer-copy">Bitcoin Block #0, 2009</div>
+  </footer>
+
+</div>
+
+<script>
+  /*
+   * ─────────────────────────────────────────────────────
+   *  PROTOCOL STUDIO — Serial-to-TXID 매핑 테이블
+   *  링 하나 팔 때마다 여기에 한 줄씩 추가하세요.
+   *  형식: 'PS-XXXX': 'mempool에서 복사한 실제 TXID'
+   * ─────────────────────────────────────────────────────
+   */
+  const SERIAL_MAP = {
+    'PS-0001': '유효한_TXID_여기에_입력',
+    'PS-0002': '유효한_TXID_여기에_입력',
+    // 계속 추가...
+  };
+
+  /* mempool.space API 엔드포인트 */
+  const MEMPOOL = 'https://mempool.space/api';
+
+  /* OP_RETURN 텍스트 파싱: hex → 사람이 읽을 수 있는 문자열 */
+  function hexToText(hex) {
+    try {
+      let str = '';
+      for (let i = 0; i < hex.length; i += 2)
+        str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+      return str;
+    } catch { return null; }
+  }
+
+  /* OP_RETURN 데이터 파싱: "PS-0001 | 20250414 | BLK0 | 925Ag | 4a5e1e4b" */
+  function parseOpReturn(text) {
+    if (!text || !text.startsWith('PS-')) return null;
+    const parts = text.split('|').map(p => p.trim());
+    if (parts.length < 4) return null;
+    return {
+      serial:   parts[0] || '—',
+      date:     formatDate(parts[1]) || parts[1] || '—',
+      block:    parts[2] === 'BLK0' ? 'Genesis Block #0' : parts[2] || '—',
+      material: parts[3] === '925Ag' ? '925 Sterling Silver' : parts[3] || '—',
+      hash:     parts[4] || '—',
+    };
+  }
+
+  function formatDate(d) {
+    if (!d || d.length !== 8) return d;
+    return `${d.slice(0,4)}/${d.slice(4,6)}/${d.slice(6,8)}`;
+  }
+
+  /* mempool.space API로 TXID 조회 */
+  async function fetchTx(txid) {
+    const res = await fetch(`${MEMPOOL}/tx/${txid}`);
+    if (!res.ok) throw new Error('tx_not_found');
+    return res.json();
+  }
+
+  /* 트랜잭션에서 OP_RETURN 추출 */
+  function extractOpReturn(tx) {
+    for (const out of tx.vout) {
+      const asm = out.scriptpubkey_asm || '';
+      if (asm.startsWith('OP_RETURN')) {
+        const hex = out.scriptpubkey.slice(4); // OP_RETURN OP_PUSHDATA 제거
+        return hexToText(hex);
+      }
+    }
+    return null;
+  }
+
+  /* ── UI 상태 ── */
+  let activeTab = 'txid';
+
+  function switchTab(tab) {
+    activeTab = tab;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('tab-txid').classList.toggle('hidden', tab !== 'txid');
+    document.getElementById('tab-serial').classList.toggle('hidden', tab !== 'serial');
+    clearResult();
+  }
+
+  function switchTabDirect(tab) {
+    activeTab = tab;
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      t.classList.toggle('active', (i === 0 && tab === 'txid') || (i === 1 && tab === 'serial'));
+    });
+    document.getElementById('tab-txid').classList.toggle('hidden', tab !== 'txid');
+    document.getElementById('tab-serial').classList.toggle('hidden', tab !== 'serial');
+  }
+
+  function loadDemo(type, val) {
+    switchTabDirect(type);
+    if (type === 'txid') document.getElementById('txid-input').value = val;
+    else document.getElementById('serial-input').value = val;
+  }
+
+  /* ── 메인 검증 함수 ── */
+  async function verify() {
+    const area = document.getElementById('result-area');
+    let txid = '';
+
+    if (activeTab === 'txid') {
+      txid = document.getElementById('txid-input').value.trim().toLowerCase();
+      if (!txid) return;
+      if (txid.length !== 64) {
+        area.innerHTML = renderError(txid, 'TXID는 64자리 hex 문자열이어야 합니다.');
+        return;
+      }
+    } else {
+      const serial = document.getElementById('serial-input').value.trim().toUpperCase();
+      if (!serial) return;
+      txid = SERIAL_MAP[serial];
+      if (!txid || txid.includes('여기에')) {
+        area.innerHTML = renderError(serial, '등록되지 않은 시리얼 번호입니다.<br>SERIAL_MAP에 TXID를 추가했는지 확인하세요.');
+        return;
+      }
+    }
+
+    area.innerHTML = `<div class="loading"><div class="loading-dots"><span></span><span></span><span></span></div>Querying Bitcoin blockchain...</div>`;
+
+    try {
+      const tx = await fetchTx(txid);
+
+      /* 블록 정보 */
+      const confirmed = tx.status.confirmed;
+      const blockHeight = tx.status.block_height;
+      const confirmations = confirmed
+        ? await getCurrentHeight() - blockHeight + 1
+        : 0;
+      const blockTime = tx.status.block_time
+        ? new Date(tx.status.block_time * 1000).toISOString().slice(0,10).replace(/-/g,'/')
+        : '—';
+
+      /* OP_RETURN 파싱 */
+      const opText = extractOpReturn(tx);
+      const parsed = parseOpReturn(opText);
+
+      if (!parsed) {
+        area.innerHTML = renderError(txid, 'Protocol Studio OP_RETURN 데이터를 찾을 수 없습니다.<br>이 트랜잭션은 Protocol Studio가 발행한 기록이 아닙니다.');
+        return;
+      }
+
+      area.innerHTML = renderCert({
+        ...parsed,
+        txid,
+        btcBlock: blockHeight ? blockHeight.toLocaleString() : '미확인',
+        confirms: confirmed ? confirmations : '미확인(mempool)',
+        blockTime,
+        confirmed,
+      });
+
+    } catch (e) {
+      if (e.message === 'tx_not_found') {
+        area.innerHTML = renderError(txid, 'Bitcoin 네트워크에서 이 TXID를 찾을 수 없습니다.<br>TXID를 다시 확인해주세요.');
+      } else {
+        area.innerHTML = renderError(txid, `네트워크 오류가 발생했습니다.<br>${e.message}`);
+      }
+    }
+  }
+
+  async function getCurrentHeight() {
+    try {
+      const res = await fetch(`${MEMPOOL}/blocks/tip/height`);
+      return await res.json();
+    } catch { return 0; }
+  }
+
+  /* ── 렌더링 ── */
+  function renderCert(d) {
+    const shortTxid = d.txid.slice(0, 16) + '...' + d.txid.slice(-8);
+    const confirmedBadge = d.confirmed
+      ? `<span style="color:var(--verified)">${d.confirms} confirmations</span>`
+      : `<span style="color:var(--gold)">미확인 (mempool 대기 중)</span>`;
+
+    return `
+    <div class="result">
+      <div class="result-header">
+        <div class="status-dot${d.confirmed ? '' : ' pending'}"></div>
+        <div class="status-label${d.confirmed ? '' : ' pending'}">
+          ${d.confirmed ? 'Verified on Bitcoin' : 'Pending confirmation'}
+        </div>
+      </div>
+      <div class="cert">
+        <div class="cert-top">
+          <div>
+            <div class="cert-serial">${d.serial}</div>
+            <div class="cert-line">Protocol Studio — Genesis Line</div>
+          </div>
+          <div class="cert-stamp">
+            <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="14" cy="14" r="13" stroke="#c8b89a" stroke-width="0.8"/>
+              <text x="14" y="18" text-anchor="middle" font-family="Space Mono" font-size="11" fill="#c8b89a" font-weight="700">₿</text>
+            </svg>
+          </div>
+        </div>
+        <div class="cert-fields">
+          <div class="cert-field">
+            <div class="field-key">Serial</div>
+            <div class="field-val accent">${d.serial}</div>
+          </div>
+          <div class="cert-field">
+            <div class="field-key">Manufacture date</div>
+            <div class="field-val">${d.date}</div>
+          </div>
+          <div class="cert-field">
+            <div class="field-key">Reference block</div>
+            <div class="field-val gold">${d.block}</div>
+          </div>
+          <div class="cert-field">
+            <div class="field-key">Material</div>
+            <div class="field-val">${d.material}</div>
+          </div>
+          ${d.hash !== '—' ? `
+          <div class="cert-field">
+            <div class="field-key">Genesis signature</div>
+            <div class="field-val accent">${d.hash}<span style="color:var(--muted)">...</span></div>
+          </div>` : ''}
+          <div class="cert-field">
+            <div class="field-key">TXID</div>
+            <div class="field-val" style="font-size:11px;color:var(--muted)">${shortTxid}</div>
+          </div>
+          <div class="cert-field">
+            <div class="field-key">Recorded at block</div>
+            <div class="field-val">#${d.btcBlock}</div>
+          </div>
+          <div class="cert-field">
+            <div class="field-key">Block time</div>
+            <div class="field-val">${d.blockTime}</div>
+          </div>
+          <div class="cert-field">
+            <div class="field-key">Status</div>
+            <div class="field-val">${confirmedBadge}</div>
+          </div>
+        </div>
+        <div class="cert-footer">
+          <div class="footer-note">This record is permanently<br>inscribed on the Bitcoin blockchain.</div>
+          <a class="mempool-link" href="https://mempool.space/tx/${d.txid}" target="_blank">View on mempool ↗</a>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function renderError(q, reason) {
+    const short = q.length > 24 ? q.slice(0,12)+'...'+q.slice(-8) : q;
+    return `
+    <div class="result">
+      <div class="result-header">
+        <div class="status-dot error"></div>
+        <div class="status-label error">Not found</div>
+      </div>
+      <div class="error-box">
+        <div class="error-title">Verification failed</div>
+        <div class="error-sub" style="margin-bottom:12px;font-family:var(--mono);font-size:11px;color:var(--muted)">"${short}"</div>
+        <div class="error-sub">${reason || '정품 구매 시 발급된 TXID를 다시 확인해주세요.'}</div>
+      </div>
+    </div>`;
+  }
+
+  function clearResult() {
+    document.getElementById('result-area').innerHTML = '';
+    document.getElementById('txid-input').value = '';
+    document.getElementById('serial-input').value = '';
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') verify(); });
+</script>
+</body>
+</html>
